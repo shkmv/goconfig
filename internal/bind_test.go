@@ -180,6 +180,16 @@ func TestAssing(t *testing.T) {
 		{"Assign Bool False", reflect.Bool, true, false, false, false},
 		{"Unsupported Type Slice", reflect.Slice, []int{}, []int{1}, nil, true}, // Example of an unsupported type
 		{"Unsupported Type Struct", reflect.Struct, struct{}{}, struct{}{}, nil, true},
+		{"Assign Int from String", reflect.Int, 0, "123", int64(123), false},
+		{"Assign Int64 from String", reflect.Int64, int64(0), "456", int64(456), false},
+		{"Assign Float64 from String", reflect.Float64, 0.0, "789.12", 789.12, false},
+		{"Assign Float32 from String", reflect.Float32, float32(0.0), "12.34", float64(12.34), false},
+		{"Assign Bool True from String", reflect.Bool, false, "true", true, false},
+		{"Assign Bool False from String", reflect.Bool, true, "false", false, false},
+		{"Assign Bool True from String (1)", reflect.Bool, false, "1", true, false},
+		{"Assign Bool False from String (0)", reflect.Bool, true, "0", false, false},
+		{"Assign Bool True from String (yes)", reflect.Bool, false, "yes", true, false},
+		{"Assign Bool False from String (no)", reflect.Bool, true, "no", false, false},
 	}
 
 	for _, tc := range testCases {
@@ -235,13 +245,13 @@ func TestAssing(t *testing.T) {
 		})
 	}
 
-	t.Run("Type Mismatch Error", func(t *testing.T) {
+	t.Run("Invalid String to Int Conversion Error", func(t *testing.T) {
 		fieldVal := createTestField(0)
 		err := assing(fieldVal, "not-an-int")
 		if err == nil {
-			t.Errorf("Expected assing to return an error for type mismatch (int field, string value), but it returned nil")
+			t.Errorf("Expected assing to return an error for invalid string to int conversion, but it returned nil")
 		} else {
-			expectedErrorSubstring := "type mismatch"
+			expectedErrorSubstring := "cannot convert string"
 			if !strings.Contains(err.Error(), expectedErrorSubstring) {
 				t.Errorf("Expected error message to contain '%s', got '%s'", expectedErrorSubstring, err.Error())
 			}

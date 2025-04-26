@@ -111,6 +111,45 @@ func assing(fieldVal reflect.Value, val any) error {
 		// return nil
 	}
 
+	if strVal, ok := val.(string); ok {
+		switch fieldVal.Kind() {
+		case reflect.String:
+			fieldVal.SetString(strVal)
+			return nil
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			var intVal int64
+			if _, err := fmt.Sscanf(strVal, "%d", &intVal); err != nil {
+				return fmt.Errorf("cannot convert string '%s' to int: %w", strVal, err)
+			}
+			if fieldVal.OverflowInt(intVal) {
+				return fmt.Errorf("integer overflow assigning %d to %s", intVal, fieldVal.Type())
+			}
+			fieldVal.SetInt(intVal)
+			return nil
+		case reflect.Float32, reflect.Float64:
+			var floatVal float64
+			if _, err := fmt.Sscanf(strVal, "%f", &floatVal); err != nil {
+				return fmt.Errorf("cannot convert string '%s' to float: %w", strVal, err)
+			}
+			if fieldVal.Kind() == reflect.Float32 && fieldVal.OverflowFloat(floatVal) {
+				return fmt.Errorf("float32 overflow assigning %f", floatVal)
+			}
+			fieldVal.SetFloat(floatVal)
+			return nil
+		case reflect.Bool:
+			var boolVal bool
+			if strVal == "true" || strVal == "1" || strVal == "yes" || strVal == "y" {
+				boolVal = true
+			} else if strVal == "false" || strVal == "0" || strVal == "no" || strVal == "n" {
+				boolVal = false
+			} else {
+				return fmt.Errorf("cannot convert string '%s' to bool", strVal)
+			}
+			fieldVal.SetBool(boolVal)
+			return nil
+		}
+	}
+
 	valValue := reflect.ValueOf(val)
 
 	if fieldVal.Kind() != valValue.Kind() {
@@ -176,8 +215,17 @@ func assing(fieldVal reflect.Value, val any) error {
 	case reflect.Bool:
 		if b, ok := val.(bool); ok {
 			fieldVal.SetBool(b)
+		} else if s, ok := val.(string); ok {
+			sLower := strings.ToLower(s)
+			if sLower == "true" || sLower == "1" || sLower == "yes" || sLower == "y" {
+				fieldVal.SetBool(true)
+			} else if sLower == "false" || sLower == "0" || sLower == "no" || sLower == "n" {
+				fieldVal.SetBool(false)
+			} else {
+				return fmt.Errorf("cannot convert string '%s' to bool", s)
+			}
 		} else {
-			return fmt.Errorf("value for bool field is not a bool: %T", val)
+			return fmt.Errorf("value for bool field is not a bool or string: %T", val)
 		}
 	default:
 		return fmt.Errorf("unsupported type %s in assing function", fieldVal.Type())
