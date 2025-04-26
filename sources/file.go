@@ -1,6 +1,7 @@
 package sources
 
 import (
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -20,12 +21,12 @@ func NewFileSource(path string) *FileSource {
 func (f *FileSource) Load() (map[string]any, error) {
 	data, err := os.ReadFile(f.path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading file %s: %w", f.path, err)
 	}
 
 	var out map[string]any
 	if err := yaml.Unmarshal(data, &out); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshaling YAML from %s: %w", f.path, err)
 	}
 
 	// TODO: validate

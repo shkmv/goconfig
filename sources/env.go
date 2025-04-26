@@ -5,16 +5,20 @@ import (
 	"strings"
 )
 
+// EnvSource represents a configuration source that loads from environment variables.
 type EnvSource struct {
 	prefix string
 }
 
+// NewEnvSource creates a new EnvSource with the specified prefix.
+// Environment variables starting with this prefix will be loaded into the configuration.
 func NewEnvSource(prefix string) *EnvSource {
 	return &EnvSource{
 		prefix: prefix,
 	}
 }
 
+// Load loads configuration values from environment variables.
 func (e *EnvSource) Load() (map[string]any, error) {
 	out := make(map[string]any)
 	for _, env := range os.Environ() {

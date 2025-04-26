@@ -39,5 +39,8 @@ func (c *Config) Bind(target any) error {
 		merged = internal.Merge(merged, data)
 	}
 
-	return internal.Bind(merged, target)
+	if err := internal.Bind(merged, target); err != nil {
+		return fmt.Errorf("binding configuration to target: %w", err)
+	}
+	return nil
 }

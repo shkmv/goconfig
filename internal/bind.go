@@ -137,15 +137,14 @@ func assing(fieldVal reflect.Value, val any) error {
 			fieldVal.SetFloat(floatVal)
 			return nil
 		case reflect.Bool:
-			var boolVal bool
-			if strVal == "true" || strVal == "1" || strVal == "yes" || strVal == "y" {
-				boolVal = true
-			} else if strVal == "false" || strVal == "0" || strVal == "no" || strVal == "n" {
-				boolVal = false
-			} else {
+			switch strVal {
+			case "true", "1", "yes", "y":
+				fieldVal.SetBool(true)
+			case "false", "0", "no", "n":
+				fieldVal.SetBool(false)
+			default:
 				return fmt.Errorf("cannot convert string '%s' to bool", strVal)
 			}
-			fieldVal.SetBool(boolVal)
 			return nil
 		}
 	}
@@ -154,11 +153,11 @@ func assing(fieldVal reflect.Value, val any) error {
 
 	if fieldVal.Kind() != valValue.Kind() {
 		// Allow assigning float64 (common from JSON/YAML) to int types
-		if (fieldVal.Kind() == reflect.Int || fieldVal.Kind() == reflect.Int8 || fieldVal.Kind() == reflect.Int16 || fieldVal.Kind() == reflect.Int32 || fieldVal.Kind() == reflect.Int64) && valValue.Kind() == reflect.Float64 {
-		} else if (fieldVal.Kind() == reflect.Float32 || fieldVal.Kind() == reflect.Float64) && (valValue.Kind() == reflect.Float64 || valValue.Kind() == reflect.Float32) {
-		} else if fieldVal.Kind() == reflect.String && valValue.Kind() == reflect.String {
-		} else if fieldVal.Kind() == reflect.Bool && valValue.Kind() == reflect.Bool {
-		} else {
+		// These type combinations are allowed for conversion
+		if (fieldVal.Kind() != reflect.Int && fieldVal.Kind() != reflect.Int8 && fieldVal.Kind() != reflect.Int16 && fieldVal.Kind() != reflect.Int32 && fieldVal.Kind() != reflect.Int64 || valValue.Kind() != reflect.Float64) &&
+			(fieldVal.Kind() != reflect.Float32 && fieldVal.Kind() != reflect.Float64 || (valValue.Kind() != reflect.Float64 && valValue.Kind() != reflect.Float32)) &&
+			(fieldVal.Kind() != reflect.String || valValue.Kind() != reflect.String) &&
+			(fieldVal.Kind() != reflect.Bool || valValue.Kind() != reflect.Bool) {
 			return fmt.Errorf("type mismatch: cannot assign %T to field of type %s", val, fieldVal.Type())
 		}
 	}
@@ -172,22 +171,23 @@ func assing(fieldVal reflect.Value, val any) error {
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		// Handle potential float64 input from map[string]any (JSON)
-		if f64, ok := val.(float64); ok {
-			if fieldVal.OverflowInt(int64(f64)) {
-				return fmt.Errorf("integer overflow assigning %f to %s", f64, fieldVal.Type())
+		switch v := val.(type) {
+		case float64:
+			if fieldVal.OverflowInt(int64(v)) {
+				return fmt.Errorf("integer overflow assigning %f to %s", v, fieldVal.Type())
 			}
-			fieldVal.SetInt(int64(f64))
-		} else if i64, ok := val.(int64); ok {
-			if fieldVal.OverflowInt(i64) {
-				return fmt.Errorf("integer overflow assigning %d to %s", i64, fieldVal.Type())
+			fieldVal.SetInt(int64(v))
+		case int64:
+			if fieldVal.OverflowInt(v) {
+				return fmt.Errorf("integer overflow assigning %d to %s", v, fieldVal.Type())
 			}
-			fieldVal.SetInt(i64)
-		} else if i, ok := val.(int); ok {
-			if fieldVal.OverflowInt(int64(i)) {
-				return fmt.Errorf("integer overflow assigning %d to %s", i, fieldVal.Type())
+			fieldVal.SetInt(v)
+		case int:
+			if fieldVal.OverflowInt(int64(v)) {
+				return fmt.Errorf("integer overflow assigning %d to %s", v, fieldVal.Type())
 			}
-			fieldVal.SetInt(int64(i))
-		} else {
+			fieldVal.SetInt(int64(v))
+		default:
 			return fmt.Errorf("value for integer field is not a number: %T", val)
 		}
 	case reflect.Float32, reflect.Float64:
@@ -213,18 +213,20 @@ func assing(fieldVal reflect.Value, val any) error {
 		fieldVal.SetFloat(f64)
 
 	case reflect.Bool:
-		if b, ok := val.(bool); ok {
-			fieldVal.SetBool(b)
-		} else if s, ok := val.(string); ok {
-			sLower := strings.ToLower(s)
-			if sLower == "true" || sLower == "1" || sLower == "yes" || sLower == "y" {
+		switch v := val.(type) {
+		case bool:
+			fieldVal.SetBool(v)
+		case string:
+			sLower := strings.ToLower(v)
+			switch sLower {
+			case "true", "1", "yes", "y":
 				fieldVal.SetBool(true)
-			} else if sLower == "false" || sLower == "0" || sLower == "no" || sLower == "n" {
+			case "false", "0", "no", "n":
 				fieldVal.SetBool(false)
-			} else {
-				return fmt.Errorf("cannot convert string '%s' to bool", s)
+			default:
+				return fmt.Errorf("cannot convert string '%s' to bool", v)
 			}
-		} else {
+		default:
 			return fmt.Errorf("value for bool field is not a bool or string: %T", val)
 		}
 	default:
