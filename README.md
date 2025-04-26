@@ -42,7 +42,7 @@ type ServerConfig struct {
 }
 
 func main() {
-    var cfg Config
+    var cfg ServerConfig
     err := goconfig.New().
         FromFile("server-config.yaml").
         FromEnv("APP_").
@@ -73,7 +73,7 @@ type ServerConfig struct {
 }
 
 func main() {
-cfg, err := goconfig.Load[Config](
+cfg, err := goconfig.Load[ServerConfig](
     goconfig.WithFile("server-config.yaml"),
     goconfig.WithEnv("APP_"),
 )

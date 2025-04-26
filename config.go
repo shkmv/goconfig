@@ -22,6 +22,12 @@ func (c *Config) FromEnv(prefix string) *Config {
 	return c
 }
 
+// FromFile loads configuration from a file.
+func (c *Config) FromFile(path string) *Config {
+	c.sources = append(c.sources, sources.NewFileSource(path))
+	return c
+}
+
 // Bind binds the configuration to a target struct.
 func (c *Config) Bind(target any) error {
 	merged := make(map[string]any)
