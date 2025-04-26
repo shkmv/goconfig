@@ -67,9 +67,9 @@ import (
 )
 
 type ServerConfig struct {
-	Port   int      `config:"port"`
-  DBHost string   `config:"db.host"`
-  DBPass string   `config:"db.pass"`
+    Port   int    `config:"port"`
+    DBHost string `config:"db.host"`
+    DBPass string `config:"db.pass"`
 }
 
 func main() {
