@@ -1,0 +1,14 @@
+string: test-string
+int: 42
+float: 3.14159
+bool: true
+nested:
+  value1: nested-value
+  value2: 123
+bool_values:
+  true1: true
+  true2: "1"
+  true3: "yes"
+  false1: false
+  false2: "0"
+  false3: "no"
