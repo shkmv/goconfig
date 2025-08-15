@@ -12,6 +12,7 @@ Inspired by Rust crate `config`.
 - [x] Merge multiple sources with priority
 - [x] Bind into strongly-typed structs using tags
 - [x] Minimalistic, clean API
+- [x] Mark required fields with `required:"true"`
 - [ ] Mask sensitive fields for secure logging
 
 ---
@@ -55,6 +56,18 @@ func main() {
 _ = cfg
 ```
 
+### Required fields
+
+Add `required:"true"` to any field with a `config` tag to fail binding when the key is missing in all sources.
+
+```go
+type ServerConfig struct {
+    Port   int    `config:"port" required:"true"`
+    DBHost string `config:"db.host" required:"true"`
+    DBPass string `config:"db.pass"` // optional
+}
+```
+
 ###  Generics
 
 ```go
@@ -80,6 +93,6 @@ cfg, err := goconfig.Load[ServerConfig](
 if err != nil {
     panic(err)
 }
-
+    
 _ = cfg
 ```

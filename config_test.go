@@ -404,3 +404,45 @@ port: 3000
 	os.Unsetenv("APP_DB_HOST")
 	os.Unsetenv("APP_PORT")
 }
+
+func TestRequiredFieldsMissing(t *testing.T) {
+    type ReqConfig struct {
+        DB struct {
+            Host string `config:"host" required:"true"`
+        } `config:"db"`
+        Port int `config:"port" required:"true"`
+    }
+
+    // Ensure env is clean
+    os.Unsetenv("APP_DB_HOST")
+    os.Unsetenv("APP_PORT")
+
+    _, err := Load[ReqConfig](WithEnv("APP_"))
+    if err == nil {
+        t.Error("Expected error for missing required fields, got nil")
+    }
+}
+
+func TestRequiredFieldsPresent(t *testing.T) {
+    type ReqConfig struct {
+        DB struct {
+            Host string `config:"host" required:"true"`
+        } `config:"db"`
+        Port int `config:"port" required:"true"`
+    }
+
+    os.Setenv("APP_DB_HOST", "localhost")
+    os.Setenv("APP_PORT", "3000")
+
+    cfg, err := Load[ReqConfig](WithEnv("APP_"))
+    if err != nil {
+        t.Fatalf("Did not expect error when required fields are present, got: %v", err)
+    }
+
+    if cfg.DB.Host != "localhost" || cfg.Port != 3000 {
+        t.Errorf("Unexpected values: DB.Host=%s Port=%d", cfg.DB.Host, cfg.Port)
+    }
+
+    os.Unsetenv("APP_DB_HOST")
+    os.Unsetenv("APP_PORT")
+}

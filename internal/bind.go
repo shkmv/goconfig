@@ -1,9 +1,9 @@
 package internal
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
+    "fmt"
+    "reflect"
+    "strings"
 )
 
 // Bind recursively binds data from a map to the fields of a target struct
@@ -20,18 +20,24 @@ func Bind(data map[string]any, target any) error {
 	}
 	t := v.Type()
 
-	for i := range t.NumField() {
-		field := t.Field(i)
-		tag := field.Tag.Get("config")
-		if tag == "" || !field.IsExported() {
-			continue
-		}
+    for i := range t.NumField() {
+        field := t.Field(i)
+        tag := field.Tag.Get("config")
+        if tag == "" || !field.IsExported() {
+            continue
+        }
 
-		keys := strings.Split(tag, ".")
-		val, ok := lookup(data, keys)
-		if !ok {
-			continue
-		}
+        // Check if the field is marked as required via `required:"true"` tag
+        isRequired := isTruthy(field.Tag.Get("required"))
+
+        keys := strings.Split(tag, ".")
+        val, ok := lookup(data, keys)
+        if !ok {
+            if isRequired {
+                return fmt.Errorf("missing required config key '%s' for field %s", tag, field.Name)
+            }
+            continue
+        }
 
 		fieldVal := v.Field(i)
 		if !fieldVal.CanSet() {
@@ -39,36 +45,36 @@ func Bind(data map[string]any, target any) error {
 		}
 
 		if fieldVal.Kind() == reflect.Struct {
-			if subData, ok := val.(map[string]any); ok {
-				if !fieldVal.CanAddr() {
-					return fmt.Errorf("cannot get address of field %s to bind nested struct", field.Name)
-				}
-				if err := Bind(subData, fieldVal.Addr().Interface()); err != nil {
-					return fmt.Errorf("error binding nested struct field %s: %w", field.Name, err)
-				}
-			} else if val != nil {
-				return fmt.Errorf("type mismatch for field %s: expected map[string]any for nested struct, got %T", field.Name, val)
-			}
-		} else if fieldVal.Kind() == reflect.Ptr && fieldVal.Elem().Kind() == reflect.Struct {
-			if subData, ok := val.(map[string]any); ok {
-				if fieldVal.IsNil() {
-					newStruct := reflect.New(fieldVal.Type().Elem())
-					fieldVal.Set(newStruct)
-				}
-				if err := Bind(subData, fieldVal.Interface()); err != nil {
-					return fmt.Errorf("error binding nested pointer field %s: %w", field.Name, err)
-				}
-			} else if val != nil {
-				return fmt.Errorf("type mismatch for pointer field %s: expected map[string]any for nested struct pointer, got %T", field.Name, val)
-			}
-		} else {
-			if err := assing(fieldVal, val); err != nil {
-				return fmt.Errorf("error assigning value to field %s: %w", field.Name, err)
-			}
-		}
-	}
+            if subData, ok := val.(map[string]any); ok {
+                if !fieldVal.CanAddr() {
+                    return fmt.Errorf("cannot get address of field %s to bind nested struct", field.Name)
+                }
+                if err := Bind(subData, fieldVal.Addr().Interface()); err != nil {
+                    return fmt.Errorf("error binding nested struct field %s: %w", field.Name, err)
+                }
+            } else if val != nil {
+                return fmt.Errorf("type mismatch for field %s: expected map[string]any for nested struct, got %T", field.Name, val)
+            }
+        } else if fieldVal.Kind() == reflect.Ptr && fieldVal.Elem().Kind() == reflect.Struct {
+            if subData, ok := val.(map[string]any); ok {
+                if fieldVal.IsNil() {
+                    newStruct := reflect.New(fieldVal.Type().Elem())
+                    fieldVal.Set(newStruct)
+                }
+                if err := Bind(subData, fieldVal.Interface()); err != nil {
+                    return fmt.Errorf("error binding nested pointer field %s: %w", field.Name, err)
+                }
+            } else if val != nil {
+                return fmt.Errorf("type mismatch for pointer field %s: expected map[string]any for nested struct pointer, got %T", field.Name, val)
+            }
+        } else {
+            if err := assing(fieldVal, val); err != nil {
+                return fmt.Errorf("error assigning value to field %s: %w", field.Name, err)
+            }
+        }
+    }
 
-	return nil
+    return nil
 }
 
 func lookup(data map[string]any, keys []string) (any, bool) {
@@ -233,4 +239,15 @@ func assing(fieldVal reflect.Value, val any) error {
 		return fmt.Errorf("unsupported type %s in assing function", fieldVal.Type())
 	}
 	return nil
+}
+
+// isTruthy returns true if the provided string represents a truthy value.
+// Accepts: "true", "1", "yes", "y", "on" (case-insensitive).
+func isTruthy(s string) bool {
+    switch strings.ToLower(strings.TrimSpace(s)) {
+    case "true", "1", "yes", "y", "on":
+        return true
+    default:
+        return false
+    }
 }
