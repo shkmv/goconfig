@@ -24,8 +24,14 @@ func (c *Config) FromEnv(prefix string) *Config {
 
 // FromFile loads configuration from a file.
 func (c *Config) FromFile(path string) *Config {
-	c.sources = append(c.sources, sources.NewFileSource(path))
-	return c
+    c.sources = append(c.sources, sources.NewFileSource(path))
+    return c
+}
+
+// FromDotEnv loads configuration from a .env file.
+func (c *Config) FromDotEnv(path string) *Config {
+    c.sources = append(c.sources, sources.NewDotEnvSource(path))
+    return c
 }
 
 // Bind binds the configuration to a target struct.

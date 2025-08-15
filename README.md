@@ -9,6 +9,7 @@ Inspired by Rust crate `config`.
 ## Features
 
 - [x] Load from YAML files and environment variables
+- [x] Load from .env files
 - [x] Merge multiple sources with priority
 - [x] Bind into strongly-typed structs using tags
 - [x] Minimalistic, clean API
@@ -46,6 +47,7 @@ func main() {
     var cfg ServerConfig
     err := goconfig.New().
         FromFile("server-config.yaml").
+        FromDotEnv(".env").
         FromEnv("APP_").
         Bind(&cfg)
     if err != nil {
@@ -88,6 +90,7 @@ type ServerConfig struct {
 func main() {
 cfg, err := goconfig.Load[ServerConfig](
     goconfig.WithFile("server-config.yaml"),
+    goconfig.WithDotEnv(".env"),
     goconfig.WithEnv("APP_"),
 )
 if err != nil {
@@ -96,3 +99,8 @@ if err != nil {
     
 _ = cfg
 ```
+### .env file format
+
+Simple KEY=VALUE lines are supported. Lines beginning with `#` are comments. Optional `export` is allowed. Inline comments after unescaped `#` are stripped. Quotes and a few escapes (\n, \t, \r, \\) are handled.
+
+Keys are normalized like environment variables: underscores become dots and keys are lowercased. For example `DB_HOST=localhost` becomes `db.host`.

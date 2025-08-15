@@ -323,6 +323,87 @@ this is not valid YAML
 	}
 }
 
+func TestLoadConfigFromDotEnv(t *testing.T) {
+    type EnvCfg struct {
+        DB struct {
+            Host string `config:"host"`
+            Port int    `config:"port"`
+        } `config:"db"`
+        Port int `config:"port"`
+    }
+
+    tempDir := t.TempDir()
+    envPath := filepath.Join(tempDir, ".env")
+    content := `
+# Comment
+DB_HOST=dotenv-host
+DB_PORT=6543 # inline comment
+PORT="8080"
+export UNUSED=1
+`
+    if err := os.WriteFile(envPath, []byte(content), 0644); err != nil {
+        t.Fatalf("Failed to write dotenv file: %v", err)
+    }
+
+    cfg, err := Load[EnvCfg](WithDotEnv(envPath))
+    if err != nil {
+        t.Fatalf("Failed to load config from .env: %v", err)
+    }
+
+    if cfg.DB.Host != "dotenv-host" {
+        t.Errorf("Expected DB.Host to be 'dotenv-host', got '%s'", cfg.DB.Host)
+    }
+    if cfg.DB.Port != 6543 {
+        t.Errorf("Expected DB.Port to be 6543, got %d", cfg.DB.Port)
+    }
+    if cfg.Port != 8080 {
+        t.Errorf("Expected Port to be 8080, got %d", cfg.Port)
+    }
+}
+
+func TestLoadConfigFromDotEnvAndEnvMerge(t *testing.T) {
+    type EnvCfg struct {
+        DB struct {
+            Host string `config:"host"`
+            Port int    `config:"port"`
+        } `config:"db"`
+        Port int `config:"port"`
+    }
+
+    tempDir := t.TempDir()
+    envPath := filepath.Join(tempDir, ".env")
+    content := `
+DB_HOST=dotenv-host
+DB_PORT=6543
+PORT=8080
+`
+    if err := os.WriteFile(envPath, []byte(content), 0644); err != nil {
+        t.Fatalf("Failed to write dotenv file: %v", err)
+    }
+
+    os.Setenv("APP_DB_HOST", "env-host")
+    os.Setenv("APP_PORT", "9090")
+
+    cfg, err := Load[EnvCfg](WithDotEnv(envPath), WithEnv("APP_"))
+    if err != nil {
+        t.Fatalf("Failed to load config from .env + env: %v", err)
+    }
+
+    // Env should override dotenv where overlapping
+    if cfg.DB.Host != "env-host" {
+        t.Errorf("Expected DB.Host to be 'env-host', got '%s'", cfg.DB.Host)
+    }
+    if cfg.DB.Port != 6543 {
+        t.Errorf("Expected DB.Port to be 6543, got %d", cfg.DB.Port)
+    }
+    if cfg.Port != 9090 {
+        t.Errorf("Expected Port to be 9090, got %d", cfg.Port)
+    }
+
+    os.Unsetenv("APP_DB_HOST")
+    os.Unsetenv("APP_PORT")
+}
+
 func TestLoadConfigFromMultipleSources(t *testing.T) {
 	tempDir := t.TempDir()
 	tempFile := filepath.Join(tempDir, "partial.yaml")
