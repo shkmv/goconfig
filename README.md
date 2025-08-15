@@ -14,7 +14,7 @@ Inspired by Rust crate `config`.
 - [x] Bind into strongly-typed structs using tags
 - [x] Minimalistic, clean API
 - [x] Mark required fields with `required:"true"`
-- [ ] Mask sensitive fields for secure logging
+- [x] Mask sensitive fields for secure logging
 
 ---
 
@@ -71,6 +71,25 @@ type ServerConfig struct {
 ```
 
 ###  Generics
+
+### Secrets masking
+
+Mark sensitive fields with `secret:"true"` and use `MaskedJSON` (or `MaskedMap`) when logging configuration.
+
+```go
+type ServerConfig struct {
+    Port   int    `config:"port"`
+    DBHost string `config:"db.host"`
+    DBPass string `config:"db.pass" secret:"true"`
+}
+
+cfg, _ := goconfig.Load[ServerConfig](
+    goconfig.WithFile("server-config.yaml"),
+)
+
+safe, _ := goconfig.MaskedJSON(cfg)
+fmt.Printf("config: %s\n", safe) // db.pass is "***"
+```
 
 ```go
 package main

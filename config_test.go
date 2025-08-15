@@ -1,11 +1,12 @@
 package goconfig
 
 import (
-	"os"
-	"path/filepath"
-	"testing"
+    "os"
+    "path/filepath"
+    "testing"
+    "strings"
 
-	"github.com/shkmv/goconfig/sources"
+    "github.com/shkmv/goconfig/sources"
 )
 
 type TestConfig struct {
@@ -402,6 +403,36 @@ PORT=8080
 
     os.Unsetenv("APP_DB_HOST")
     os.Unsetenv("APP_PORT")
+}
+
+func TestMaskedJSONRedactsSecrets(t *testing.T) {
+    type S struct {
+        DB struct {
+            Host string `config:"host"`
+            Pass string `config:"pass" secret:"true"`
+        } `config:"db"`
+        Token string `config:"token" secret:"true"`
+        Port  int    `config:"port"`
+    }
+    cfg := S{}
+    cfg.DB.Host = "localhost"
+    cfg.DB.Pass = "super-secret"
+    cfg.Token = "tkn"
+    cfg.Port = 8080
+
+    masked, err := MaskedJSON(cfg)
+    if err != nil {
+        t.Fatalf("MaskedJSON failed: %v", err)
+    }
+    if strings.Contains(masked, "super-secret") || strings.Contains(masked, "tkn") {
+        t.Errorf("MaskedJSON leaked secret values: %s", masked)
+    }
+    if !strings.Contains(masked, "\"***\"") {
+        t.Errorf("MaskedJSON does not contain masked placeholders: %s", masked)
+    }
+    if !strings.Contains(masked, "localhost") || !strings.Contains(masked, "8080") {
+        t.Errorf("MaskedJSON missing non-secret fields: %s", masked)
+    }
 }
 
 func TestLoadConfigFromMultipleSources(t *testing.T) {
