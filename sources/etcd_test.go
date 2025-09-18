@@ -19,11 +19,11 @@ func TestEtcdSource(t *testing.T) {
 		DialTimeout: 5 * time.Second,
 	})
 	require.NoError(t, err)
-	defer cli.Close()
 
 	t.Cleanup(func() {
 		_, err := cli.Delete(context.Background(), prefix, clientv3.WithPrefix())
 		require.NoError(t, err)
+		require.NoError(t, cli.Close())
 	})
 
 	_, err = cli.Put(context.Background(), "/config/foo", "bar")
@@ -55,11 +55,11 @@ func TestEtcdSource_Watch(t *testing.T) {
 		DialTimeout: 5 * time.Second,
 	})
 	require.NoError(t, err)
-	defer cli.Close()
 
 	t.Cleanup(func() {
 		_, err := cli.Delete(context.Background(), prefix, clientv3.WithPrefix())
 		require.NoError(t, err)
+		require.NoError(t, cli.Close())
 	})
 
 	_, err = cli.Put(context.Background(), "/config/foo", "bar")
