@@ -21,6 +21,11 @@ func TestEtcdSource(t *testing.T) {
 	require.NoError(t, err)
 	defer cli.Close()
 
+	t.Cleanup(func() {
+		_, err := cli.Delete(context.Background(), prefix, clientv3.WithPrefix())
+		require.NoError(t, err)
+	})
+
 	_, err = cli.Put(context.Background(), "/config/foo", "bar")
 	require.NoError(t, err)
 	_, err = cli.Put(context.Background(), "/config/baz/qux", "123")
@@ -35,7 +40,7 @@ func TestEtcdSource(t *testing.T) {
 	expected := map[string]any{
 		"foo": "bar",
 		"baz": map[string]any{
-			"qux": "123",
+			"qux": float64(123),
 		},
 	}
 	assert.Equal(t, expected, data)
@@ -51,6 +56,11 @@ func TestEtcdSource_Watch(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer cli.Close()
+
+	t.Cleanup(func() {
+		_, err := cli.Delete(context.Background(), prefix, clientv3.WithPrefix())
+		require.NoError(t, err)
+	})
 
 	_, err = cli.Put(context.Background(), "/config/foo", "bar")
 	require.NoError(t, err)
